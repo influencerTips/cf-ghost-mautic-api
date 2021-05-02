@@ -1,6 +1,6 @@
-# cf-ghost-admin-api
+# cf-ghost-mautic-api
 
-> Used to expose functionality in Ghost Admin API
+> Used to allow Ghost to work with Mautic API
 
 ## Installation
 
@@ -10,29 +10,16 @@
 4. Setup worker script with the following environment variables mapping values from your ghost account.
 
 ```
-GHOST_ADMIN_API_KEY: Value encrypted
-GHOST_API_URL: Value encrypted
-GHOST_CONTENT_API_KEY: Value encrypted
+MAUTIC_DOMAIN: Value encrypted
+MAUTIC_USERNAME: Value encrypted
+MAUTIC_PASSWORD: Value encrypted
 ```
 
 ## Documentation
 
-The use case scenario for creating this was to allow a subscribed user access to their labels. Therefore only admin API get request access to a Ghost blog subscribed member's details using their `UUID` is setup.
+The use case scenario for creating this was to allow a Ghost data to pushed to Mautic.
 
-### Usage
-
-```
-[cf-api-endpoint]/members?uuid=[replace-with-member-uuid]
-```
-
-The response is what ever is passed back from the Ghost admin api.
-
-Notes:
-* Works with [ghost version 3.40.0](https://github.com/TryGhost/Ghost).
-* Ghost Admin members API fis canary and may change in future versions.
-* The use case scenario for setting this application up was to allow a subscribed user access to their labels.
-
-
+* **member update** - use a Ghost member update webhook to call `MAUTIC_DOMAIN\member`.
 
 ## Need more help
 

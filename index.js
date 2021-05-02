@@ -1,72 +1,98 @@
 const Router = require('./router')
-const jwt = require('jsonwebtoken');
 
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
 })
 
-function getParameterByName(name, url) {
-  name = name.replace(/[\[\]]/g, '\\$&');
-  var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
-    results = regex.exec(url);
-  if (!results) return null;
-  if (!results[2]) return '';
-  return decodeURIComponent(results[2].replace(/\+/g, ' '));
+async function getContactID(email) {
+  let headers = new Headers();
+  headers.append('Content-Type', 'application/json; charset=UTF-8');
+  headers.append('Authorization', 'Basic ' +  btoa( MAUTIC_USERNAME + ':' + MAUTIC_PASSWORD));
+  let response = await fetch( MAUTIC_DOMAIN+'/api/contacts?search='+email , {
+    method: 'GET',
+    headers: headers
+  });
+  let data = await response.json();
+  let id = ( (data.contacts.length != 0) ? Object.keys(data.contacts)[0] : 0 ) ;
+  return id;
 }
 
-function isUUID(s){
-  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(s);
-}
+async function putContact(request) {
+  let data =
+  {
+    'ghostid': request.uuid,
+    'firstname': request.name.substr(0,request.name.indexOf(' ')),
+    'lastname': request.name.substr(request.name.indexOf(' ')+1),
+    'email': request.email,
+    'doNotContact': (request.subscribed===true)?[]:[{"id": 2,"reason": 1,"comments": "","channel": "email","channelId": null}]
+  };
+  let headers = new Headers();
+  headers.append('Content-Type', 'application/json; charset=UTF-8');
+  headers.append('Authorization', 'Basic ' +  btoa( MAUTIC_USERNAME + ':' + MAUTIC_PASSWORD));
+  let response = await fetch( MAUTIC_DOMAIN+'/api/contacts/new' , {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(data)
+  });
+  return new Response(
+    null,
+    {
+      headers: { 'content-type': 'text/plain; charset=us-ascii' },
+      status: 204,
+      statusText: 'success'
+    }
+  );
+};
 
-async function getMembers(request) {
-  const uuid=getParameterByName('uuid', new URL(request.url).href);
-  if (isUUID(uuid)) {
-    const [id, secret] = GHOST_ADMIN_API_KEY.split(':');
-    const token = jwt.sign({}, Buffer.from(secret, 'hex'), {
-      keyid: id,
-      algorithm: 'HS256',
-      expiresIn: '5m',
-      audience: `/v3/admin/`
-    });
-    let headers = new Headers();
-    headers.append('Content-Type', 'application/json; charset=UTF-8');
-    headers.append('Authorization',`Ghost ${token}`);
-    let response = await fetch((GHOST_API_URL+'/ghost/api/v3/admin/members/?filter=uuid:'+encodeURIComponent(uuid)), {
-      method: 'GET',
-      headers: headers
-    });
-    return new Response(
-      JSON.stringify(await response.json()),
-      { headers: { 'content-type': 'application/json' } }
-    )
+async function patchContact(request,id) {
+  let data =
+  {
+    'ghostid': request.uuid,
+    'firstname': request.name.substr(0,request.name.indexOf(' ')),
+    'lastname': request.name.substr(request.name.indexOf(' ')+1),
+    'email': request.email,
+    'doNotContact': (request.subscribed===true)?[]:[{"id": 2,"reason": 1,"comments": "","channel": "email","channelId": null}]
+  };
+  let headers = new Headers();
+  headers.append('Content-Type', 'application/json; charset=UTF-8');
+  headers.append('Authorization', 'Basic ' +  btoa( MAUTIC_USERNAME + ':' + MAUTIC_PASSWORD));
+  let response = await fetch( MAUTIC_DOMAIN+'/api/contacts/'+String(id)+'/edit' , {
+    method: 'PATCH',
+    headers: headers,
+    body: JSON.stringify(data)
+  });
+  return new Response(
+    null,
+    {
+      headers: { 'content-type': 'text/plain; charset=us-ascii' },
+      status: 204,
+      statusText: 'success'
+    }
+  );
+};
+
+
+async function postMember(request) {
+
+  let ghost = await request.json();
+  let id = await getContactID(ghost.member.current.email);
+
+  if ( id === 0 ) {
+    const resp = await putContact(ghost.member.current)
+    return resp
+  } else {
+    const resp = await patchContact(ghost.member.current,id)
+    return resp
   }
-  else {
-    return new Response(
-      JSON.stringify(
-        {
-          "members": [],
-          "meta": {
-            "pagination": {
-              "page": 1,
-              "limit": 15,
-              "pages": 1,
-              "total": 1,
-              "next": null,
-              "prev": null
-            }
-          }
-        }
-      ),
-      { headers: { 'content-type': 'application/json' } }
-    )
-  }
-}
+
+};
 
 async function handleRequest(request) {
+
     const r = new Router()
-    r.get('.*/test', () => new Response('OK'))
-    r.get('.*/members.*', request => getMembers(request))
+    r.post('/member', request => postMember(request))
 
     const resp = await r.route(request)
     return resp
+
 }

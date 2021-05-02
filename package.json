@@ -1,0 +1,20 @@
+{
+  "name": "cf-ghost-mautic-api",
+  "version": "1.0.0",
+  "description": "used to push ghost data to mautic",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/influencerTips/cf-ghost-mautic-api.git"
+  },
+  "author": "mattcam",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/influencerTips/cf-ghost-mautic-api/issues"
+  },
+  "homepage": "https://github.com/influencerTips/cf-ghost-mautic-api#readme",
+  "dependencies": {}
+}
